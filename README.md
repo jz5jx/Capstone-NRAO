@@ -1,7 +1,7 @@
 NRAO Capstone
 
 
-  Column Headings:
+  Data Column Headings:
   
  NAXIS - dimensions and axis, focus on the central pixal first
 
