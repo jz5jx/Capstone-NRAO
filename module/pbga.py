@@ -33,11 +33,20 @@ class PBGA(object):
     Attributes
     ----------
     group_ranges : array, shape = [n_groups,]
-
-    group_data : array, shape = [n_groups, n_rows, n_columns]
-
+        Array containing group ranges for each identified group from PBGA in
+        the following format: ['row min', 'row max', 'col min', 'col max'].
+    group_data : array, shape = [n_groups,]
+        Array containing dictionaries corresponding to group data for each
+        identified group from PBGA; the following data is collected: x indices
+        ('X'), y coordinates ('Y'), z coordinates ('IMAGE'), ['x min', 'y min']
+        reference range ('REF'), ['x max', 'y max'] limit range ('LIMIT').
     group_stats : array, shape = [n_groups,]
-
+        Array containing dictionaries corresponding to group statistics for
+        each identified group from PBGA; the following statistics are
+        collected: x mean ('X_BAR'), y mean ('Y_BAR'), covariance matrix
+        ('COV_MAT'), correlation ('RHO'), eigen values ('EIG_VALUES'), eigen
+        vectors ('EIG_VECTORS'), length of major axis ('X_LEN'), length of
+        minor axis ('Y_LEN'), axis of rotation in radians ('RAD').
     """
 
     def __init__(self, buffer_size, group_size, subgroup_factor=0.5,
@@ -140,7 +149,7 @@ class PBGA(object):
                 groups.append([[row, col]])
 
         # 'group_ranges' may contain ranges that can be nested; for example,
-        # the range ['row min'=25, 'row max'=75, 'col min'=25, 'col max'=75,]
+        # the range ['row min'=25, 'row max'=75, 'col min'=25, 'col max'=75]
         # lies within the range ['row min'=0, 'row max'=100, 'col min'=0,
         # 'col max'=100]
 
@@ -303,6 +312,7 @@ class PBGA(object):
             # if there is more than one critical point, this may indicate the
             # presence of subgroups within the image data
             if len(indexes) > 1:
+                
                 # values of critical points along the center row of image data
                 values = [r[mid, x[indexes[i]]] for i in range(len(indexes))]
 
