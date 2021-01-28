@@ -50,7 +50,7 @@ class PBGA(object):
     """
 
     def __init__(self, buffer_size, group_size, subgroup_factor=0.5,
-                 group_factor=None):
+                 group_factor=0.0):
         self.buffer_size = buffer_size
         self.group_size = group_size
         self.subgroup_factor = subgroup_factor
@@ -290,10 +290,13 @@ class PBGA(object):
 
             n_rows = r.shape[0]
             n_cols = r.shape[1]
-            mid = int(n_rows / 2)
+
+            # row, col indexes for maximum intensity from image data
+            r_mid, c_mid = np.where(r == np.max(r))
+            r_mid, c_mid = r_mid[0], c_mid[0]
 
             # image data from the center row of the rotated image
-            y = np.array([r[mid, c] for c in range(n_cols)])
+            y = np.array([r[r_mid, c] for c in range(n_cols)])
 
             # trim off 10% of the image data from both ends
             trim = int(len(y) * 0.10)
@@ -323,10 +326,10 @@ class PBGA(object):
             if len(indexes) > 1:
                 
                 # values of critical points along the center row of image data
-                values = [r[mid, x[indexes[i]]] for i in range(len(indexes))]
+                values = [r[r_mid, x[indexes[i]]] for i in range(len(indexes))]
 
                 # peak-to-peak amplitude of the values (intensities)
-                dists = [r[mid, x[indexes[i - 1]]] - r[mid, x[indexes[i]]]
+                dists = [r[r_mid, x[indexes[i - 1]]] - r[r_mid, x[indexes[i]]]
                          for i in range(1, len(indexes))]
 
                 # drop values whose amplitudes do not fall within the specified
@@ -339,7 +342,7 @@ class PBGA(object):
             if len(values) > 1:
 
                 # coords of the critical points on the rotated image
-                c = np.array([[x[i], mid] for i in indexes])
+                c = np.array([[x[i], r_mid] for i in indexes])
 
                 # original center of the un-rotated image
                 org_center = (np.array(data_['IMAGE'].shape[:2][::-1]) - 1) / 2
