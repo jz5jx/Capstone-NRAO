@@ -25,10 +25,10 @@ class PBGA(object):
         The ratio between [0, 1] that specifies the minimum number of nonzero
         points that determines a group in relation to the number of nonzero
         points in the largest group. For instance, given that the largest group
-        contains 100 nonzero points, groups that have less than 25 nonzero
-        points will considered as a 'group' if the 'group_factor' is at most
-        0.25, since 0.25*100=25 is within the size range of [25, 100]. Other-
-        wise, these groups will no longer be considered as a 'group'.
+        contains 100 nonzero points, groups that have more than 25 nonzero
+        points will considered as a 'group' if the 'group_factor' is at least
+        0.25, since 0.25*100=25 is within the size range of [25, 100]. Groups
+        having less than 25 nonzero points will not be considered as a 'group'.
 
     Attributes
     ----------
@@ -171,9 +171,18 @@ class PBGA(object):
             i += 1
 
         # filter out small groups that do not meet 'group_size' threshold
-        return [group_range for group, group_range in zip(groups,
-                                                          group_ranges)
-                if len(group) > self.group_size]
+        group_ranges = [group_range for group, group_range in
+                        zip(groups, group_ranges)
+                        if len(group) >= self.group_size]
+
+        # filter out small groups that do not meet 'group_factor' threshold
+        threshold = int(self.group_factor *
+                        np.max([len(group) for group in groups]))
+        group_ranges = [group_range for group, group_range in
+                        zip(groups, group_ranges)
+                        if len(group) >= threshold]
+
+        return group_ranges
 
     def _compute_stats(self, image):
 
