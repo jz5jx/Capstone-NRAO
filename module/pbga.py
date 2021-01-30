@@ -90,6 +90,9 @@ class PBGA(object):
         # update statistics for group ranges
         self.group_stats, self.group_data = self._compute_stats(image)
 
+        # convert group data into square matrices
+        self._convert_to_square_matrix()
+
         return self
 
     def _arrange_groups(self, nonzero):
@@ -386,3 +389,31 @@ class PBGA(object):
             else:
                 group_ranges.append(range_)
         return group_ranges
+
+    def _convert_to_square_matrix(self):
+        # converts image data from the groups to a square matrix by inserting
+        # additional rows or columns to the shorter axis
+        for i, group_data in enumerate(self.group_data):
+            image = group_data['IMAGE']
+            n_rows = image.shape[0]
+            n_cols = image.shape[1]
+
+            if n_rows == n_cols:
+                continue
+
+            diff = np.abs(n_rows - n_cols)
+            split = diff//2
+            shape = n_rows if n_rows > n_cols else n_cols
+
+            a = np.zeros((split, shape))
+            b = np.zeros((diff-split, shape))
+
+            # add roughly equal sets of arrays containing 0's to either ends
+            if n_rows > n_cols:
+                image = np.insert(image, 0, a, axis=1)
+                image = np.insert(image, len(image[0]), b, axis=1)
+            else:
+                image = np.insert(image, 0, a, axis=0)
+                image = np.append(image, b, axis=0)
+
+            self.group_data[i]['IMAGE'] = image
