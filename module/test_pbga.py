@@ -7,9 +7,9 @@ from pbga import PBGA
 class TestPBGA(unittest.TestCase):
 
     @staticmethod
-    def generate_data(x_bar, y_bar, x_var, y_var, cov, sigma):
-        x = np.arange(0, 1000, 1)
-        y = np.arange(0, 1000, 1)
+    def generate_data(x_bar, y_bar, x_var, y_var, cov, sigma, n_rows, n_cols):
+        x = np.arange(0, n_rows, 1)
+        y = np.arange(0, n_cols, 1)
         x, y = np.meshgrid(x, y)
         pos = np.dstack((x, y))
 
@@ -22,100 +22,101 @@ class TestPBGA(unittest.TestCase):
 
         return z
 
-    def setUp(self):
-        self.pbga = PBGA(buffer_size=10, group_size=40)
+    def generate_image(self, params, n_rows, n_cols):
+        image_data = np.zeros((n_rows, n_cols))
+        for param in params:
+            x_bar, y_bar, x_var, y_var, cov, sigma = param
+            image_data += self.generate_data(x_bar, y_bar, x_var, y_var,
+                                             cov, sigma, n_rows, n_cols)
+        return image_data
+
+    def evaluate_number_of_groups(self, pbga, group_count):
+        # check number of groups detected by pbga matches group count
+        self.assertEqual(len(pbga.group_ranges), group_count,
+                         msg=f"Number of group ranges "
+                             f"({len(pbga.group_ranges)}) does match specified"
+                             f" number of groups ({group_count}).")
+        self.assertEqual(len(pbga.group_stats), group_count,
+                         msg=f"Number of group statistics "
+                             f"({len(pbga.group_stats)}) does match specified"
+                             f" number of groups ({group_count}).")
+        self.assertEqual(len(pbga.group_data), group_count,
+                         msg=f"Number of group data "
+                             f"({len(pbga.group_data)}) does match specified"
+                             f" number of groups ({group_count}).")
+
+    def evaluate_group_location(self, pbga, params, margin):
+        for i, (stats_, param) in enumerate(zip(pbga.group_stats, params)):
+            x_bar, y_bar, x_var, y_var, cov, sigma = param
+            x_min, x_max = x_bar * (1 - margin), x_bar * (1 + margin)
+            y_min, y_max = y_bar * (1 - margin), y_bar * (1 + margin)
+            # check if x_bar, y_bar fall within the original parameters plus
+            # the specified margin
+            self.assertTrue((x_min <= stats_['X_BAR'] <= x_max),
+                            msg=f"Group {i}'s \"X_BAR\" ({stats_['X_BAR']})\n"
+                                f"does not fall within [{x_min}, {x_max}].")
+            self.assertTrue((y_min <= stats_['Y_BAR'] <= y_max),
+                            msg=f"Group {i}'s \"Y_BAR\" ({stats_['Y_BAR']})\n"
+                                f"does not fall within [{y_min}, {y_max}].")
 
     # Test one central group with no covariance
     def test_one_group_no_covariance(self):
-        z = self.generate_data(500, 500, 50, 50, 0, 5)
+        # parameters for generate_data() excluding n_rows, n_cols
+        # (i.e. x_bar, y_bar, x_var, y_var, cov, sigma)
+        params = [[500, 500, 250, 50, 0, 5]]
+        image_data = self.generate_image(params, n_rows=1000, n_cols=1000)
 
-        self.pbga.run(image=z)
+        pbga = PBGA(buffer_size=10, group_size=50)
+        pbga.run(image=image_data)
 
-        self.assertEqual(len(self.pbga.group_ranges), 1)
-        self.assertEqual(len(self.pbga.group_stats), 1)
-
-        group_stats = self.pbga.group_stats[0]
-        self.assertEqual(group_stats['X_BAR'], 500)
-        self.assertEqual(group_stats['Y_BAR'], 500)
+        self.evaluate_number_of_groups(pbga, len(params))
+        self.evaluate_group_location(pbga, params, margin=0.025)
 
     # Test two row adjacent groups with high covariance
     def test_two_adjacent_groups_high_covariance(self):
-        z = self.generate_data(333, 500, 150, 150, 125, 5)
-        z += self.generate_data(667, 500, 150, 150, -125, 5)
+        # parameters for generate_data() excluding n_rows, n_cols
+        # (i.e. x_bar, y_bar, x_var, y_var, cov, sigma)
+        params = [[333, 500, 150, 150, 125, 5],
+                  [667, 500, 150, 150, -125, 5]]
+        image_data = self.generate_image(params, n_rows=1000, n_cols=1000)
 
-        self.pbga.run(image=z)
+        pbga = PBGA(buffer_size=10, group_size=50)
+        pbga.run(image=image_data)
 
-        self.assertEqual(len(self.pbga.group_ranges), 2)
-        self.assertEqual(len(self.pbga.group_stats), 2)
-
-        group1_stats = self.pbga.group_stats[0]
-        group2_stats = self.pbga.group_stats[1]
-
-        self.assertAlmostEqual(group1_stats['X_BAR'], 333)
-        self.assertAlmostEqual(group1_stats['Y_BAR'], 500)
-
-        self.assertAlmostEqual(group2_stats['X_BAR'], 667)
-        self.assertAlmostEqual(group2_stats['Y_BAR'], 500)
+        self.evaluate_number_of_groups(pbga, len(params))
+        self.evaluate_group_location(pbga, params, margin=0.025)
 
     # Test four row, col adjacent groups with no covariance
     def test_four_adjacent_groups_no_covariance(self):
-        z = self.generate_data(333, 333, 50, 50, 0, 5)
-        z += self.generate_data(667, 333, 50, 50, 0, 5)
-        z += self.generate_data(333, 667, 50, 50, 0, 5)
-        z += self.generate_data(667, 667, 50, 50, 0, 5)
+        # parameters for generate_data() excluding n_rows, n_cols
+        # (i.e. x_bar, y_bar, x_var, y_var, cov, sigma)
+        params = [[333, 333, 50, 50, 0, 5],
+                  [667, 333, 50, 50, 0, 5],
+                  [333, 667, 50, 50, 0, 5],
+                  [667, 667, 50, 50, 0, 5]]
+        image_data = self.generate_image(params, n_rows=1000, n_cols=1000)
 
-        self.pbga.run(image=z)
+        pbga = PBGA(buffer_size=10, group_size=50)
+        pbga.run(image=image_data)
 
-        self.assertEqual(len(self.pbga.group_ranges), 4)
-        self.assertEqual(len(self.pbga.group_stats), 4)
-        self.assertEqual(len(self.pbga.group_data), 4)
-
-        group1_stats = self.pbga.group_stats[0]
-        group2_stats = self.pbga.group_stats[1]
-        group3_stats = self.pbga.group_stats[2]
-        group4_stats = self.pbga.group_stats[3]
-
-        self.assertEqual(group1_stats['X_BAR'], 333)
-        self.assertEqual(group1_stats['Y_BAR'], 333)
-
-        self.assertEqual(group2_stats['X_BAR'], 667)
-        self.assertEqual(group2_stats['Y_BAR'], 333)
-
-        self.assertEqual(group3_stats['X_BAR'], 333)
-        self.assertEqual(group3_stats['Y_BAR'], 667)
-
-        self.assertEqual(group4_stats['X_BAR'], 667)
-        self.assertEqual(group4_stats['Y_BAR'], 667)
+        self.evaluate_number_of_groups(pbga, len(params))
+        self.evaluate_group_location(pbga, params, margin=0.025)
 
     # Test four row, col adjacent groups with high covariance
     def test_four_adjacent_groups_high_covariance(self):
-        z = self.generate_data(333, 333, 150, 150, 125, 5)
-        z += self.generate_data(667, 333, 150, 150, -125, 5)
-        z += self.generate_data(333, 667, 150, 150, -125, 5)
-        z += self.generate_data(667, 667, 150, 150, 125, 5)
+        # parameters for generate_data() excluding n_rows, n_cols
+        # (i.e. x_bar, y_bar, x_var, y_var, cov, sigma)
+        params = [[333, 333, 150, 150, 125, 5],
+                  [667, 333, 150, 150, -125, 5],
+                  [333, 667, 150, 150, -125, 5],
+                  [667, 667, 150, 150, 125, 5]]
+        image_data = self.generate_image(params, n_rows=1000, n_cols=1000)
 
-        self.pbga.run(image=z)
+        pbga = PBGA(buffer_size=10, group_size=50)
+        pbga.run(image=image_data)
 
-        self.assertEqual(len(self.pbga.group_ranges), 4)
-        self.assertEqual(len(self.pbga.group_stats), 4)
-        self.assertEqual(len(self.pbga.group_data), 4)
-
-        group1_stats = self.pbga.group_stats[0]
-        group2_stats = self.pbga.group_stats[1]
-        group3_stats = self.pbga.group_stats[2]
-        group4_stats = self.pbga.group_stats[3]
-
-        self.assertAlmostEqual(group1_stats['X_BAR'], 333)
-        self.assertAlmostEqual(group1_stats['Y_BAR'], 333)
-
-        self.assertAlmostEqual(group2_stats['X_BAR'], 667)
-        self.assertAlmostEqual(group2_stats['Y_BAR'], 333)
-
-        self.assertAlmostEqual(group3_stats['X_BAR'], 333)
-        self.assertAlmostEqual(group3_stats['Y_BAR'], 667)
-
-        self.assertAlmostEqual(group4_stats['X_BAR'], 667)
-        self.assertAlmostEqual(group4_stats['Y_BAR'], 667)
+        self.evaluate_number_of_groups(pbga, len(params))
+        self.evaluate_group_location(pbga, params, margin=0.025)
 
 
 if __name__ == "__main__":
