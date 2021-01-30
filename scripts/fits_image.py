@@ -1,19 +1,53 @@
 """Class for working with FITS images
+Methods for plotting and fitting bivariate Gaussians to images
 """
+
+from astropy.io import fits
+import astropy.io
+from astropy.table import Table
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import itertools
 
 class fits_image:
 
     def __init__(self, file_path):
+        '''Reads in FITS image from file and stores intensity values in object
+
+        Arguments
+        ---------
+        file_path: str indicating location of FITS file'''
+
         self.fits = fits.open(file_path)
         self.image = self.fits[0]
         self.imdata = self.image.data.squeeze()
 
     def plot_image(self, colorbar = True):
+        '''Plots FITS image intensity levels
+
+        Arguments
+        ---------
+        colorbar: boolean indicating whether or not to include a colorbar scale'''
+
         plt.imshow(self.imdata, origin='lower')
         if colorbar:
             plt.colorbar()
 
     def fit_bivariate_gaussian(self, noise_thresh):
+        '''Fits a single bivariate Gaussian to a FITS image
+
+        Arguments
+        ---------
+        noise_thresh: float value of estimated noise intensity; all values below this level will be truncated
+
+        Returns
+        -------
+        [x1_bar, x2_bar, cov_mat]: array containing the means and covariance matrix of the fitted Gaussian
+        '''
+
         X = range(len(self.imdata[0]))
         Y = range(len(self.imdata))
         Z = self.imdata
@@ -42,9 +76,17 @@ class fits_image:
 
 
     def get_noise_level(self, nchunks = 3, rms_quantile = 0):
-        '''
-        nchunks = number of chunks for grid, must be odd
-        rms_quantile = quantile of chunk RMS to use for noise level (0 = min RMS, 0.5 = median, etc)
+        '''Calculates estimated noise level in image intensity
+        Stores value in fits_image object noise attribute
+
+        Arguments
+        ---------
+        nchunks: int number of chunks to use in grid, must be odd
+        rms_quantile: float in range [0, 1] indicating quantile of chunk RMS to use for noise level (0 = min RMS, 0.5 = median, etc)
+
+        Returns
+        -------
+        noise: float estimated noise in image intensity values
         '''
 
         id1 = np.argwhere(np.isnan(self.imdata))[:,0]
