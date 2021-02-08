@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import itertools
 
-class fits_image:
+class FitsImage:
 
     def __init__(self, file_path):
         '''Reads in FITS image from file and stores intensity values in object
@@ -77,7 +77,7 @@ class fits_image:
 
     def get_noise_level(self, nchunks = 3, rms_quantile = 0):
         '''Calculates estimated noise level in image intensity
-        Stores value in fits_image object noise attribute
+        Stores value in FitsImage object noise attribute
 
         Arguments
         ---------
