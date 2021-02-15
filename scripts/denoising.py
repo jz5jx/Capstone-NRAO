@@ -33,3 +33,24 @@ new_imdata: np array of same size as image data array, but with values outside r
             new_imdata[ix, iy] = np.nan
 
     return new_imdata
+
+
+def pb_multiply(fits_image, pb_path):
+'''Function to multiply a FITS image by a .pb file to deemphasize edges
+
+Inputs
+------
+fits_image: an object of class FitsImage
+pb_path: str indicating file location of corresponding .pb file
+
+Returns
+-------
+new_imdata: np array of same size as image data array
+    consisting of elementwise multiplication of image and pb file
+'''
+
+    pb = FitsImage(pb_path)
+
+    new_imdata = np.multiply(fits_image.imdata, pb.imdata)
+
+    return new_imdata
