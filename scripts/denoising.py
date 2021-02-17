@@ -56,12 +56,16 @@ def pb_multiply(im_array, pb_path):
 
     return new_imdata
 
-def get_noise_level(fits_image, nchunks = 3, rms_quantile = 0.5):
+def get_noise_level(im_array, nchunks = 3, rms_quantile = 0.5):
     '''Calculates estimated noise level in image intensity
     Stores value in FitsImage object noise attribute
 
-    Arguments
-    ---------
+    Inputs
+    ------
+    im_array: 2d array representing a FITS image data
+
+    Params
+    ------
     nchunks: int number of chunks to use in grid, must be odd
     rms_quantile: float in range [0, 1] indicating quantile of chunk RMS to use for noise level (0 = min RMS, 0.5 = median, etc)
 
@@ -70,13 +74,7 @@ def get_noise_level(fits_image, nchunks = 3, rms_quantile = 0.5):
     noise: float estimated noise in image intensity values
     '''
 
-    id1 = np.argwhere(np.isnan(fits_image.imdata))[:,0]
-    id2 = np.argwhere(np.isnan(fits_image.imdata))[:,1]
-
-    imdata = fits_image.imdata.copy()
-
-    imdata = np.delete(imdata, id1, axis=0)
-    imdata = np.delete(imdata, id2, axis=1)
+    imdata = im_array.copy()
 
     #now break the image into chunks and do the same analysis;
     # one of the chunks should have no signal in and give you an estimate of the noise (= rms).# number of chunks in each direction:
