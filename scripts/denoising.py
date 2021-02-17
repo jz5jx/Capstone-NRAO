@@ -35,12 +35,12 @@ def circle_crop(fits_image, rad_factor = 1.0):
     return new_imdata
 
 
-def pb_multiply(fits_image, pb_path):
+def pb_multiply(im_array, pb_path):
     '''Function to multiply a FITS image by a .pb file to deemphasize edges
 
     Inputs
     ------
-    fits_image: an object of class FitsImage
+    im_array: 2d array representing a FITS image data
     pb_path: str indicating file location of corresponding .pb file
 
     Returns
@@ -49,9 +49,10 @@ def pb_multiply(fits_image, pb_path):
         consisting of elementwise multiplication of image and pb file
     '''
 
-    pb = FitsImage(pb_path)
+    pb_fits = fits.open(pb_path)
+    pb = pb_fits[0].data.squeeze()
 
-    new_imdata = np.multiply(fits_image.imdata, pb.imdata)
+    new_imdata = np.multiply(im_array, pb)
 
     return new_imdata
 
