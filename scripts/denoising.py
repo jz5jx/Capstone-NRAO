@@ -1,11 +1,11 @@
 import numpy as np
 
-def circle_crop(fits_image, rad_factor = 1.0):
+def circle_crop(im_array, rad_factor = 1.0):
     '''Function to crop square images to a circle
 
     Inputs
     ------
-    fits_image: an object of class FitsImage
+    im_array: 2d array representing a FITS image data
 
     Params
     ------
@@ -23,10 +23,10 @@ def circle_crop(fits_image, rad_factor = 1.0):
     if rad_factor < 0:
         raise ValueError('rad_factor must be >= 0')
 
-    rad = fits_image.imdata.shape[0]/2
+    rad = (im_array.shape[0]/2)
     rad_sq = (rad*rad_factor)**2
 
-    new_imdata = fits_image.imdata.copy()
+    new_imdata = im_array.copy()
 
     for ix,iy in np.ndindex(new_imdata.shape):
         if (ix - rad)**2 + (iy - rad)**2 > rad_sq:
