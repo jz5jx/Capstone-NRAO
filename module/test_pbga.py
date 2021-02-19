@@ -23,6 +23,10 @@ class TestPBGA(unittest.TestCase):
         return z
 
     def generate_image(self, params, n_rows, n_cols):
+        # generates an image containing groups following the parameters of
+        # generate_data(); groups must be arranged from bottom to top with
+        # precedence over left from right in order for the tests within the
+        # evaluate methods to function properly
         image_data = np.zeros((n_rows, n_cols))
         for param in params:
             x_bar, y_bar, x_var, y_var, cov, sigma = param
@@ -59,18 +63,24 @@ class TestPBGA(unittest.TestCase):
                             msg=f"Group {i}'s \"Y_BAR\" ({stats_['Y_BAR']})\n"
                                 f"does not fall within [{y_min}, {y_max}].")
 
+    def evaluate_groups_from_params(self, params, n_rows, n_cols, buffer_size,
+                                    group_size, margin):
+        image_data = self.generate_image(params, n_rows=n_rows, n_cols=n_cols)
+
+        pbga = PBGA(buffer_size=buffer_size, group_size=group_size)
+        pbga.run(image=image_data)
+
+        self.evaluate_number_of_groups(pbga, len(params))
+        self.evaluate_group_location(pbga, params, margin=margin)
+
     # Test one central group with no covariance
     def test_one_group_no_covariance(self):
         # parameters for generate_data() excluding n_rows, n_cols
         # (i.e. x_bar, y_bar, x_var, y_var, cov, sigma)
-        params = [[500, 500, 250, 50, 0, 5]]
-        image_data = self.generate_image(params, n_rows=1000, n_cols=1000)
-
-        pbga = PBGA(buffer_size=10, group_size=50)
-        pbga.run(image=image_data)
-
-        self.evaluate_number_of_groups(pbga, len(params))
-        self.evaluate_group_location(pbga, params, margin=0.025)
+        params = [[500, 500, 50, 50, 0, 5]]
+        self.evaluate_groups_from_params(params, n_rows=1000, n_cols=1000,
+                                         buffer_size=10, group_size=50,
+                                         margin=0.025)
 
     # Test two row adjacent groups with high covariance
     def test_two_adjacent_groups_high_covariance(self):
@@ -78,13 +88,9 @@ class TestPBGA(unittest.TestCase):
         # (i.e. x_bar, y_bar, x_var, y_var, cov, sigma)
         params = [[333, 500, 150, 150, 125, 5],
                   [667, 500, 150, 150, -125, 5]]
-        image_data = self.generate_image(params, n_rows=1000, n_cols=1000)
-
-        pbga = PBGA(buffer_size=10, group_size=50)
-        pbga.run(image=image_data)
-
-        self.evaluate_number_of_groups(pbga, len(params))
-        self.evaluate_group_location(pbga, params, margin=0.025)
+        self.evaluate_groups_from_params(params, n_rows=1000, n_cols=1000,
+                                         buffer_size=10, group_size=50,
+                                         margin=0.025)
 
     # Test four row, col adjacent groups with no covariance
     def test_four_adjacent_groups_no_covariance(self):
@@ -94,13 +100,9 @@ class TestPBGA(unittest.TestCase):
                   [667, 333, 50, 50, 0, 5],
                   [333, 667, 50, 50, 0, 5],
                   [667, 667, 50, 50, 0, 5]]
-        image_data = self.generate_image(params, n_rows=1000, n_cols=1000)
-
-        pbga = PBGA(buffer_size=10, group_size=50)
-        pbga.run(image=image_data)
-
-        self.evaluate_number_of_groups(pbga, len(params))
-        self.evaluate_group_location(pbga, params, margin=0.025)
+        self.evaluate_groups_from_params(params, n_rows=1000, n_cols=1000,
+                                         buffer_size=10, group_size=50,
+                                         margin=0.025)
 
     # Test four row, col adjacent groups with high covariance
     def test_four_adjacent_groups_high_covariance(self):
@@ -110,13 +112,37 @@ class TestPBGA(unittest.TestCase):
                   [667, 333, 150, 150, -125, 5],
                   [333, 667, 150, 150, -125, 5],
                   [667, 667, 150, 150, 125, 5]]
-        image_data = self.generate_image(params, n_rows=1000, n_cols=1000)
+        self.evaluate_groups_from_params(params, n_rows=1000, n_cols=1000,
+                                         buffer_size=10, group_size=50,
+                                         margin=0.025)
 
-        pbga = PBGA(buffer_size=10, group_size=50)
-        pbga.run(image=image_data)
+    # Test four row, col adjacent groups at the corners
+    def test_four_adjacent_groups_at_corners(self):
+        # parameters for generate_data() excluding n_rows, n_cols
+        # (i.e. x_bar, y_bar, x_var, y_var, cov, sigma)
+        params = [[25, 25, 150, 150, 125, 5],
+                  [975, 25, 150, 150, -125, 5],
+                  [25, 975, 150, 150, -125, 5],
+                  [975, 975, 150, 150, 125, 5]]
+        self.evaluate_groups_from_params(params, n_rows=1000, n_cols=1000,
+                                         buffer_size=10, group_size=50,
+                                         margin=0.025)
 
-        self.evaluate_number_of_groups(pbga, len(params))
-        self.evaluate_group_location(pbga, params, margin=0.025)
+    def test_nine_adjacent_groups_at_center(self):
+        # parameters for generate_data() excluding n_rows, n_cols
+        # (i.e. x_bar, y_bar, x_var, y_var, cov, sigma)
+        params = [[500, 450, 25, 150, 0, 5],
+                  [450, 450, 150, 150, 125, 5],
+                  [550, 450, 150, 150, -125, 5],
+                  [500, 500, 50, 50, 0, 5],
+                  [450, 500, 150, 25, 0, 5],
+                  [550, 500, 150, 25, 0, 5],
+                  [500, 550, 25, 150, 0, 5],
+                  [450, 550, 150, 150, -125, 5],
+                  [550, 550, 150, 150, 125, 5]]
+        self.evaluate_groups_from_params(params, n_rows=1000, n_cols=1000,
+                                         buffer_size=5, group_size=50,
+                                         margin=0.025)
 
 
 if __name__ == "__main__":
