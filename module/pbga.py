@@ -87,7 +87,7 @@ class PBGA(object):
         # update group ranges after considering subgroups
         self.group_ranges = self._arrange_subgroups()
 
-        # update statistics for group ranges
+        # update statistics from group ranges
         self.group_stats, self.group_data = self._compute_stats(image)
 
         # convert group data into square matrices
@@ -126,7 +126,7 @@ class PBGA(object):
             for i, group_range in enumerate(group_ranges):
                 row_min, row_max, col_min, col_max = group_range
                 if (row_min - b <= row <= row_max + b) and \
-                   (col_min - b <= col <= col_max + b):
+                        (col_min - b <= col <= col_max + b):
 
                     # update min/max of group ranges if 'row' and/or 'col'
                     # exceed min/max bounds
@@ -164,8 +164,8 @@ class PBGA(object):
             while j < len(group_ranges):
                 r_min, r_max, c_min, c_max = group_ranges[j]
                 if ((row_min <= r_min <= row_max) and
-                    (row_min <= r_max <= row_max) and
-                    (col_min <= c_min <= col_max) and
+                        (row_min <= r_max <= row_max) and
+                        (col_min <= c_min <= col_max) and
                         (col_min <= c_max <= col_max)):
                     groups[i] += groups[j]
                     del group_ranges[j]
@@ -291,8 +291,7 @@ class PBGA(object):
             # rotate image along the major axis as defined by 'stats_['RAD']'
             r = ndimage.rotate(data_['IMAGE'], np.degrees(stats_['RAD']))
 
-            n_rows = r.shape[0]
-            n_cols = r.shape[1]
+            n_rows, n_cols = r.shape
 
             # row, col indexes for maximum intensity from image data
             r_mid, c_mid = np.where(r == np.max(r))
@@ -327,7 +326,6 @@ class PBGA(object):
             # if there is more than one critical point, this may indicate the
             # presence of subgroups within the image data
             if len(indexes) > 1:
-                
                 # values of critical points along the center row of image data
                 values = [r[r_mid, x[indexes[i]]] for i in range(len(indexes))]
 
@@ -398,22 +396,31 @@ class PBGA(object):
             n_rows = image.shape[0]
             n_cols = image.shape[1]
 
+            # continue for image data that is already a square matrix
             if n_rows == n_cols:
                 continue
 
             diff = np.abs(n_rows - n_cols)
-            split = diff//2
+            split = diff // 2
             shape = n_rows if n_rows > n_cols else n_cols
 
             a = np.zeros((split, shape))
-            b = np.zeros((diff-split, shape))
+            b = np.zeros((diff - split, shape))
+
+            # update group ranges for new dimensions of the image data
+            row_min, row_max, col_min, col_max = self.group_ranges[i]
 
             # add roughly equal sets of arrays containing 0's to either ends
             if n_rows > n_cols:
                 image = np.insert(image, 0, a, axis=1)
                 image = np.insert(image, len(image[0]), b, axis=1)
+                col_min -= a.shape[0]
+                col_max += b.shape[0]
             else:
                 image = np.insert(image, 0, a, axis=0)
                 image = np.append(image, b, axis=0)
+                row_min -= a.shape[1]
+                row_max += b.shape[1]
 
             self.group_data[i]['IMAGE'] = image
+            self.group_ranges[i] = [row_min, row_max, col_min, col_max]
