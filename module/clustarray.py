@@ -174,7 +174,7 @@ class ClustArray:
         self.circle_crop(rad_factor)
 
         if pb_path is not None:
-            self.pb_multiply(self, pb_path)
+            self.pb_multiply(pb_path)
 
         noise_lvl = self.get_noise_level()
 
