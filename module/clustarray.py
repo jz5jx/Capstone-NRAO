@@ -1,7 +1,6 @@
 import warnings
 import numpy as np
 import itertools
-from astropy.io import fits
 
 class ClustArray:
     ''' Class for working with data from FITS images
@@ -50,12 +49,12 @@ class ClustArray:
 
         return new_imdata
 
-    def pb_multiply(self, pb_path):
+    def pb_multiply(self, pb_array):
         '''Function to multiply a FITS image by a .pb file to deemphasize edges
 
         Inputs
         ------
-        pb_path: str indicating file location of corresponding .pb file
+        pb_array: numpy array from a .pb file
 
         Outputs
         -------
@@ -69,10 +68,7 @@ class ClustArray:
         else:
             imdata = self.denoised_arr.copy()
 
-        pb_fits = fits.open(pb_path)
-        pb = pb_fits[0].data.squeeze()
-
-        new_imdata = np.multiply(imdata, pb)
+        new_imdata = np.multiply(imdata, pb_array)
 
         self.denoised_arr = new_imdata
 
@@ -149,14 +145,14 @@ class ClustArray:
         self.noise_est = noise
         return(noise)
 
-    def denoise(self, pb_path = None, rad_factor = 1.0, rms_quantile = 0, grid_chunks = 3):
+    def denoise(self, pb_array = None, rad_factor = 1.0, rms_quantile = 0, grid_chunks = 3):
         '''Wrapper function to perform entire denoising process
         Crops image to a circle, multiplies by a pb file (if desired), and calculates RMS noise level
 
         Inputs
         ------
         im_array: 2d array representing a FITS image data
-        pb_path: optional str indicating file location of corresponding .pb file
+        pb_array: optional numpy array from a .pb file
 
         Params
         ------
@@ -174,8 +170,8 @@ class ClustArray:
 
         self.circle_crop(rad_factor)
 
-        if pb_path is not None:
-            self.pb_multiply(pb_path)
+        if pb_array is not None:
+            self.pb_multiply(pb_array)
 
         noise_lvl = self.get_noise_level()
 
