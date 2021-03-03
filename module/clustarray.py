@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 import itertools
+from astropy.io import fits
 
 class ClustArray:
     ''' Class for working with data from FITS images
