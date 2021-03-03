@@ -3,6 +3,10 @@ import numpy as np
 import itertools
 
 class ClustArray:
+    ''' Class for working with data from FITS images
+        Initialized from a numpy array from an image
+        Methods for denoising images
+    '''
 
     def __init__(self, np_array):
         self.im_array = np_array
@@ -10,6 +14,21 @@ class ClustArray:
         self.denoised_arr = None
 
     def circle_crop(self, rad_factor = 1.0):
+        '''Function to crop square images to a circle
+
+        Params
+        ------
+        rad_factor: float multiple allowing change to size of circle_crop
+            default is 1
+            value equal to 0.7 crops to a circle with radius that is 70% as large as the max image radius
+            values < 0 not allowed
+            values >= sqrt(2) will return original image
+
+        Outputs
+        -------
+        new_imdata: np array of same size as image data array, but with values outside radius set to nan;
+            sets self.denoised_arr to equal this array
+        '''
 
         if rad_factor < 0:
             raise ValueError('rad_factor must be >= 0')
@@ -31,6 +50,19 @@ class ClustArray:
         return new_imdata
 
     def pb_multiply(self, pb_path):
+        '''Function to multiply a FITS image by a .pb file to deemphasize edges
+
+        Inputs
+        ------
+        pb_path: str indicating file location of corresponding .pb file
+
+        Outputs
+        -------
+        new_imdata: np array of same size as image data array
+            consisting of elementwise multiplication of image and pb file;
+            sets self.denoised_arr to equal this array
+        '''
+
         if self.denoised_arr is None:
             imdata = self.im_array.copy()
         else:
@@ -56,20 +88,15 @@ class ClustArray:
 
         Returns
         -------
-        noise: float estimated noise in image intensity values
+        noise: float estimated noise in image intensity values;
+            sets self.noise_est to this value
         '''
-
-    #     id1 = np.argwhere(np.isnan(im_array))[:,0]
-    #     id2 = np.argwhere(np.isnan(im_array))[:,1]
 
         if self.denoised_arr is None:
             imdata = self.im_array.copy()
             warnings.warn('Calculating noise level from uncleaned image')
         else:
             imdata = self.denoised_arr.copy()
-
-    #     imdata = np.delete(imdata, id1, axis=0)
-    #     imdata = np.delete(imdata, id2, axis=1)
 
         #now break the image into chunks and do the same analysis;
         # one of the chunks should have no signal in and give you an estimate of the noise (= rms).# number of chunks in each direction:
@@ -122,6 +149,28 @@ class ClustArray:
         return(noise)
 
     def denoise(self, pb_path = None, rad_factor = 1.0, rms_quantile = 0, grid_chunks = 3):
+        '''Wrapper function to perform entire denoising process
+        Crops image to a circle, multiplies by a pb file (if desired), and calculates RMS noise level
+
+        Inputs
+        ------
+        im_array: 2d array representing a FITS image data
+        pb_path: optional str indicating file location of corresponding .pb file
+
+        Params
+        ------
+        rad_factor: float multiple allowing change to size of circle_crop
+            default is 1
+            value equal to 0.7 crops to a circle with radius that is 70% as large as the max image radius
+            values < 0 not allowed
+            values >= sqrt(2) will return original image
+        grid_chunks: int number of chunks to use in grid, must be odd
+        rms_quantile: float in range [0, 1] indicating quantile of chunk RMS to use for noise level (0 = min RMS, 0.5 = median, etc)
+
+        Outputs
+        -------
+        '''
+
         self.circle_crop(rad_factor)
 
         if pb_path is not None:
